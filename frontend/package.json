@@ -1,0 +1,28 @@
+{
+  "name": "retail-analytics",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "oxlint"
+  },
+  "dependencies": {
+    "lucide-react": "^1.61.0",
+    "next": "^15.2.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.4.20",
+    "oxlint": "^1.88.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17"
+  }
+}
