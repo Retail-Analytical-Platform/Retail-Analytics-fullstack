@@ -220,10 +220,12 @@ router.get("/", async (req, res) => {
 
     res.json(responsePayload);
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: err.message,
-    });
+    console.error("Overview request failed", err);
+    res.status(500).json({ error: {
+      code: "OVERVIEW_FAILED",
+      message: "Ringkasan penjualan belum berhasil dimuat. Silakan coba lagi. Jika masih terjadi, hubungi pengelola layanan.",
+      details: [],
+    } });
   }
 });
 
