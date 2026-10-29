@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabase";
+import express from "express";
+import { supabase } from "../config/supabase.js";
 
-export const dynamic = "force-dynamic";
+const router = express.Router();
 
 // Smooth Catmull-Rom to Cubic Bezier spline generator
 function getSmoothSvgPath(points) {
@@ -29,12 +29,12 @@ function calculateCoords(val, targetVal, index) {
   const stepX = 80;
   const startX = 80;
   const cx = startX + index * stepX;
-  
+
   const minY = 30;
   const maxY = 250;
   const minVal = 80000;
   const maxVal = 260000;
-  
+
   const clampedVal = Math.max(minVal, Math.min(maxVal, val));
   const ratio = (clampedVal - minVal) / (maxVal - minVal);
   const cy = Math.round(maxY - ratio * (maxY - minY));
@@ -42,15 +42,14 @@ function calculateCoords(val, targetVal, index) {
   const clampedTarget = Math.max(minVal, Math.min(maxVal, targetVal));
   const targetRatio = (clampedTarget - minVal) / (maxVal - minVal);
   const targetCy = Math.round(maxY - targetRatio * (maxY - minY));
-  
+
   return { cx, cy, targetCy };
 }
 
-export async function GET() {
+router.get("/", async (req, res) => {
   try {
     const startTime = Date.now();
 
-    // 1. Query Supabase data tahun 2025 dan 2024
     let supabaseStatus = {
       connected: false,
       year: 2025,
@@ -92,7 +91,7 @@ export async function GET() {
       supabaseStatus.error = err.message;
     }
 
-    // 2. Data Tren Penjualan 12 Bulan Tahun 2025
+    // Data Tren Penjualan 12 Bulan Tahun 2025
     const months2025 = [
       { name: "Jan", val: "$118,200", num: 118200, target: "$105,000", targetNum: 105000 },
       { name: "Feb", val: "$129,500", num: 129500, target: "$115,000", targetNum: 115000 },
@@ -108,7 +107,6 @@ export async function GET() {
       { name: "Des", val: "$248,900", num: 248900, target: "$228,000", targetNum: 228000, isPeak: true },
     ];
 
-    // Hitung koordinat dinamis untuk tiap bulan
     const chartMonths = months2025.map((m, idx) => {
       const { cx, cy, targetCy } = calculateCoords(m.num, m.targetNum, idx);
       return {
@@ -120,38 +118,33 @@ export async function GET() {
       };
     });
 
-    // Generate Path SVG Dinamis
     const linePath = getSmoothSvgPath(chartMonths.map((m) => ({ cx: m.cx, cy: m.cy })));
     const areaPath = `${linePath} L ${chartMonths[chartMonths.length - 1].cx} 250 L ${chartMonths[0].cx} 250 Z`;
     const targetPath = getSmoothSvgPath(chartMonths.map((m) => ({ cx: m.cx, cy: m.targetCy })));
 
-    // 3. Kalkulasi Metrik Kunci Tahun 2025 vs Tahun Lalu (2024)
-    // Baseline 2024 (Tahun Lalu):
+    // Kalkulasi Metrik Kunci Tahun 2025 vs Tahun Lalu (2024)
     const sales2024Raw = 1842500;
     const orders2024 = 22800;
     const cust2024 = 1840;
     const aov2024 = 79.50;
 
-    // Data 2025 (Tahun Sekarang):
     const sales2025Raw = months2025.reduce((sum, m) => sum + m.num, 0); // $2,120,000
     const orders2025 = salesCount2025 > 0 ? salesCount2025 : 25739;
     const cust2025 = customerCount > 0 ? customerCount : 2000;
     const aov2025 = sales2025Raw / orders2025; // $82.36
 
-    // Perhitungan Persentase YoY (Tahun Sekarang vs Tahun Lalu)
     const salesYoY = ((sales2025Raw - sales2024Raw) / sales2024Raw) * 100;
     const ordersYoY = ((orders2025 - orders2024) / orders2024) * 100;
     const custYoY = ((cust2025 - cust2024) / cust2024) * 100;
     const aovYoY = ((aov2025 - aov2024) / aov2024) * 100;
 
     const formatYoY = (val) => (val >= 0 ? `+${val.toFixed(1)}%` : `${val.toFixed(1)}%`);
-
     const avgMonthlyRaw = Math.round(sales2025Raw / 12);
     const exceedingCount = months2025.filter((m) => m.num >= m.targetNum).length;
 
     const responsePayload = {
       success: true,
-      source: "supabase",
+      service: "express-backend",
       comparison: "YoY",
       currentYear: 2025,
       previousYear: 2024,
@@ -164,7 +157,7 @@ export async function GET() {
         latencyMs: Date.now() - startTime,
       },
       hero: {
-        lastSync: "Terhubung ke Supabase Cloud (Data 2025)",
+        lastSync: "Terhubung ke Supabase Cloud via Express Backend (Data 2025)",
         grossRunRate: "$25.44M",
         conversionRate: "4.12%",
         fulfillmentSla: "99.4%",
@@ -225,14 +218,14 @@ export async function GET() {
       },
     };
 
-    return NextResponse.json(responsePayload);
+    res.json(responsePayload);
   } catch (err) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: err.message,
-      },
-      { status: 500 }
-    );
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
   }
-}
+});
+
+export default router;
+
