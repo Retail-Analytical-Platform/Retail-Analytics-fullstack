@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabase";
+import express from "express";
+import { supabase } from "../config/supabase.js";
 
-export const dynamic = "force-dynamic";
+const router = express.Router();
 
 // Smooth Catmull-Rom to Cubic Bezier spline generator
 function getSmoothSvgPath(points) {
@@ -29,12 +29,12 @@ function calculateCoords(val, targetVal, index) {
   const stepX = 80;
   const startX = 80;
   const cx = startX + index * stepX;
-  
+
   const minY = 30;
   const maxY = 250;
   const minVal = 80000;
   const maxVal = 260000;
-  
+
   const clampedVal = Math.max(minVal, Math.min(maxVal, val));
   const ratio = (clampedVal - minVal) / (maxVal - minVal);
   const cy = Math.round(maxY - ratio * (maxY - minY));
@@ -42,47 +42,46 @@ function calculateCoords(val, targetVal, index) {
   const clampedTarget = Math.max(minVal, Math.min(maxVal, targetVal));
   const targetRatio = (clampedTarget - minVal) / (maxVal - minVal);
   const targetCy = Math.round(maxY - targetRatio * (maxY - minY));
-  
+
   return { cx, cy, targetCy };
 }
 
-export async function GET() {
+router.get("/", async (req, res) => {
   try {
     const startTime = Date.now();
 
-    // 1. Query Supabase data tahun 2025
     let supabaseStatus = {
       connected: false,
       year: 2025,
       salesCount2025: 0,
+      salesCount2024: 0,
       customerCount: 0,
       error: null,
     };
 
-    let sales2025Rows = [];
     let customerCount = 0;
     let salesCount2025 = 0;
+    let salesCount2024 = 0;
 
     try {
-      const [sales2025CountRes, customerCountRes, sales2025DataRes] = await Promise.all([
+      const [sales2025CountRes, sales2024CountRes, customerCountRes] = await Promise.all([
         supabase
           .from("fact_sales")
           .select("*", { count: "exact", head: true })
           .gte("sold_at", "2025-01-01T00:00:00")
           .lt("sold_at", "2026-01-01T00:00:00"),
-        supabase.from("dim_customer").select("*", { count: "exact", head: true }),
         supabase
           .from("fact_sales")
-          .select("sale_id, revenue, sold_at, category")
-          .gte("sold_at", "2025-01-01T00:00:00")
-          .lt("sold_at", "2026-01-01T00:00:00")
-          .limit(5000),
+          .select("*", { count: "exact", head: true })
+          .gte("sold_at", "2024-01-01T00:00:00")
+          .lt("sold_at", "2025-01-01T00:00:00"),
+        supabase.from("dim_customer").select("*", { count: "exact", head: true }),
       ]);
 
       supabaseStatus.connected = true;
       salesCount2025 = sales2025CountRes.count ?? 0;
+      salesCount2024 = sales2024CountRes.count ?? 0;
       customerCount = customerCountRes.count ?? 0;
-      sales2025Rows = sales2025DataRes.data ?? [];
 
       if (sales2025CountRes.error) {
         supabaseStatus.error = sales2025CountRes.error.message;
@@ -92,9 +91,7 @@ export async function GET() {
       supabaseStatus.error = err.message;
     }
 
-    const hasRealData = salesCount2025 > 0;
-
-    // 2. Data Tren Penjualan 12 Bulan Tahun 2025
+    // Data Tren Penjualan 12 Bulan Tahun 2025
     const months2025 = [
       { name: "Jan", val: "$118,200", num: 118200, target: "$105,000", targetNum: 105000 },
       { name: "Feb", val: "$129,500", num: 129500, target: "$115,000", targetNum: 115000 },
@@ -110,7 +107,6 @@ export async function GET() {
       { name: "Des", val: "$248,900", num: 248900, target: "$228,000", targetNum: 228000, isPeak: true },
     ];
 
-    // Hitung koordinat dinamis untuk tiap bulan
     const chartMonths = months2025.map((m, idx) => {
       const { cx, cy, targetCy } = calculateCoords(m.num, m.targetNum, idx);
       return {
@@ -122,41 +118,46 @@ export async function GET() {
       };
     });
 
-    // Generate Path SVG Dinamis
     const linePath = getSmoothSvgPath(chartMonths.map((m) => ({ cx: m.cx, cy: m.cy })));
     const areaPath = `${linePath} L ${chartMonths[chartMonths.length - 1].cx} 250 L ${chartMonths[0].cx} 250 Z`;
     const targetPath = getSmoothSvgPath(chartMonths.map((m) => ({ cx: m.cx, cy: m.targetCy })));
 
-    // KPI 2025
-    const total2025SalesRaw = months2025.reduce((sum, m) => sum + m.num, 0); // $2,120,000
-    const avgMonthlyRaw = Math.round(total2025SalesRaw / 12); // $176,667
+    // Kalkulasi Metrik Kunci Tahun 2025 vs Tahun Lalu (2024)
+    const sales2024Raw = 1842500;
+    const orders2024 = 22800;
+    const cust2024 = 1840;
+    const aov2024 = 79.50;
+
+    const sales2025Raw = months2025.reduce((sum, m) => sum + m.num, 0); // $2,120,000
+    const orders2025 = salesCount2025 > 0 ? salesCount2025 : 25739;
+    const cust2025 = customerCount > 0 ? customerCount : 2000;
+    const aov2025 = sales2025Raw / orders2025; // $82.36
+
+    const salesYoY = ((sales2025Raw - sales2024Raw) / sales2024Raw) * 100;
+    const ordersYoY = ((orders2025 - orders2024) / orders2024) * 100;
+    const custYoY = ((cust2025 - cust2024) / cust2024) * 100;
+    const aovYoY = ((aov2025 - aov2024) / aov2024) * 100;
+
+    const formatYoY = (val) => (val >= 0 ? `+${val.toFixed(1)}%` : `${val.toFixed(1)}%`);
+    const avgMonthlyRaw = Math.round(sales2025Raw / 12);
     const exceedingCount = months2025.filter((m) => m.num >= m.targetNum).length;
-
-    // Hitung AOV dan KPI Orders
-    let kpiOrders = "25,739";
-    let kpiCustomers = customerCount > 0 ? customerCount.toLocaleString("en-US") : "2,000";
-    let kpiSales = "$" + total2025SalesRaw.toLocaleString("en-US");
-    let kpiSalesSubtext = "Setara Rp 2.12 Miliar (Tahun 2025)";
-    let kpiAov = "$" + (total2025SalesRaw / (salesCount2025 || 25739)).toFixed(2);
-
-    if (hasRealData && sales2025Rows.length > 0) {
-      kpiOrders = salesCount2025.toLocaleString("en-US");
-      kpiSalesSubtext = `Total ${salesCount2025.toLocaleString()} Transaksi 2025`;
-    }
 
     const responsePayload = {
       success: true,
-      source: "supabase",
-      year: 2025,
+      service: "express-backend",
+      comparison: "YoY",
+      currentYear: 2025,
+      previousYear: 2024,
       supabase: {
         connected: supabaseStatus.connected,
         salesCount2025,
+        salesCount2024,
         customerCount,
         error: supabaseStatus.error,
         latencyMs: Date.now() - startTime,
       },
       hero: {
-        lastSync: "Terhubung ke Supabase Cloud (Data 2025)",
+        lastSync: "Terhubung ke Supabase Cloud via Express Backend (Data 2025)",
         grossRunRate: "$25.44M",
         conversionRate: "4.12%",
         fulfillmentSla: "99.4%",
@@ -164,33 +165,33 @@ export async function GET() {
       },
       kpi: {
         totalSales: {
-          value: kpiSales,
-          raw: total2025SalesRaw,
-          subtext: kpiSalesSubtext,
-          change: "+15.1%",
+          value: "$" + sales2025Raw.toLocaleString("en-US"),
+          raw: sales2025Raw,
+          subtext: "Setara Rp 2.12 Miliar (Tahun 2025)",
+          change: formatYoY(salesYoY),
           period: "vs tahun lalu",
-          isPositive: true,
+          isPositive: salesYoY >= 0,
         },
         totalOrders: {
-          value: kpiOrders,
+          value: orders2025.toLocaleString("en-US"),
           subtext: "Transaksi Terverifikasi (2025)",
-          change: "+11.4%",
+          change: formatYoY(ordersYoY),
           period: "vs tahun lalu",
-          isPositive: true,
+          isPositive: ordersYoY >= 0,
         },
         totalCustomers: {
-          value: kpiCustomers,
+          value: cust2025.toLocaleString("en-US"),
           subtext: "Akun Konsumen Aktif",
-          change: "+7.2%",
+          change: formatYoY(custYoY),
           period: "vs tahun lalu",
-          isPositive: true,
+          isPositive: custYoY >= 0,
         },
         avgOrderValue: {
-          value: kpiAov,
+          value: "$" + aov2025.toFixed(2),
           subtext: "Rata-rata keranjang riil",
-          change: "+3.3%",
+          change: formatYoY(aovYoY),
           period: "vs tahun lalu",
-          isPositive: true,
+          isPositive: aovYoY >= 0,
         },
       },
       chart: {
@@ -217,14 +218,14 @@ export async function GET() {
       },
     };
 
-    return NextResponse.json(responsePayload);
+    res.json(responsePayload);
   } catch (err) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: err.message,
-      },
-      { status: 500 }
-    );
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
   }
-}
+});
+
+export default router;
+
