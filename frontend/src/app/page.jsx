@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 const HERO_IMG =
@@ -22,7 +22,26 @@ const months = [
 ];
 
 export default function Overview() {
+  const [data, setData] = useState(null);
   const [hoveredMonth, setHoveredMonth] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/overview")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json?.success) {
+          setData(json);
+        }
+      })
+      .catch((err) => console.error("Error fetching overview data:", err));
+  }, []);
+
+  const kpi = data?.kpi;
+  const hero = data?.hero;
+  const chartMonths = data?.chart?.months || months;
+  const chartSummary = data?.chart?.summary;
+  const peakCallout = data?.chart?.peakCallout;
+  const svgPaths = data?.chart?.svgPaths;
 
   const scrollToInsights = () => {
     document.getElementById("insights-summary")?.scrollIntoView({ behavior: "smooth" });
@@ -69,7 +88,7 @@ export default function Overview() {
             <div className="flex items-center gap-4 pt-2 text-xs text-on-surface-variant dark:text-[#94A3B8]">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-metric-positive"></span>
-                Sinkronisasi Data: 12 Detik lalu
+                {hero?.lastSync || "Sinkronisasi Data: 12 Detik lalu"}
               </span>
             </div>
           </div>
@@ -147,13 +166,13 @@ export default function Overview() {
               </div>
             </div>
             <div className="my-3">
-              <div className="text-[26px] font-bold text-primary dark:text-white font-['Manrope',sans-serif] tracking-tight">$1,842,500</div>
-              <div className="text-[11px] text-on-surface-variant dark:text-[#94A3B8]">Setara Rp 1.84 Miliar</div>
+              <div className="text-[26px] font-bold text-primary dark:text-white font-['Manrope',sans-serif] tracking-tight">{kpi?.totalSales?.value || "$1,842,500"}</div>
+              <div className="text-[11px] text-on-surface-variant dark:text-[#94A3B8]">{kpi?.totalSales?.subtext || "Setara Rp 1.84 Miliar"}</div>
             </div>
             <div className="flex items-center">
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#EBF5E9] dark:bg-emerald-950/50 text-metric-positive text-xs font-semibold">
                 <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                +12.4%
+                {kpi?.totalSales?.change || "+12.4%"}
               </span>
               <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">vs bulan lalu</span>
             </div>
@@ -168,13 +187,13 @@ export default function Overview() {
               </div>
             </div>
             <div className="my-3">
-              <div className="text-[26px] font-bold text-primary dark:text-white font-['Manrope',sans-serif] tracking-tight">24,890</div>
-              <div className="text-[11px] text-on-surface-variant dark:text-[#94A3B8]">Transaksi Terverifikasi</div>
+              <div className="text-[26px] font-bold text-primary dark:text-white font-['Manrope',sans-serif] tracking-tight">{kpi?.totalOrders?.value || "24,890"}</div>
+              <div className="text-[11px] text-on-surface-variant dark:text-[#94A3B8]">{kpi?.totalOrders?.subtext || "Transaksi Terverifikasi"}</div>
             </div>
             <div className="flex items-center">
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#EBF5E9] dark:bg-emerald-950/50 text-metric-positive text-xs font-semibold">
                 <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                +8.1%
+                {kpi?.totalOrders?.change || "+8.1%"}
               </span>
               <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">vs bulan lalu</span>
             </div>
@@ -189,13 +208,13 @@ export default function Overview() {
               </div>
             </div>
             <div className="my-3">
-              <div className="text-[26px] font-bold text-primary dark:text-white font-['Manrope',sans-serif] tracking-tight">14,320</div>
-              <div className="text-[11px] text-on-surface-variant dark:text-[#94A3B8]">Akun Konsumen Aktif</div>
+              <div className="text-[26px] font-bold text-primary dark:text-white font-['Manrope',sans-serif] tracking-tight">{kpi?.totalCustomers?.value || "14,320"}</div>
+              <div className="text-[11px] text-on-surface-variant dark:text-[#94A3B8]">{kpi?.totalCustomers?.subtext || "Akun Konsumen Aktif"}</div>
             </div>
             <div className="flex items-center">
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#EBF5E9] dark:bg-emerald-950/50 text-metric-positive text-xs font-semibold">
                 <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                +5.6%
+                {kpi?.totalCustomers?.change || "+5.6%"}
               </span>
               <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">vs bulan lalu</span>
             </div>
@@ -210,13 +229,13 @@ export default function Overview() {
               </div>
             </div>
             <div className="my-3">
-              <div className="text-[26px] font-bold text-primary dark:text-white font-['Manrope',sans-serif] tracking-tight">$74.00</div>
-              <div className="text-[11px] text-on-surface-variant dark:text-[#94A3B8]">Setara Rp 74.000 / order</div>
+              <div className="text-[26px] font-bold text-primary dark:text-white font-['Manrope',sans-serif] tracking-tight">{kpi?.avgOrderValue?.value || "$74.00"}</div>
+              <div className="text-[11px] text-on-surface-variant dark:text-[#94A3B8]">{kpi?.avgOrderValue?.subtext || "Setara Rp 74.000 / order"}</div>
             </div>
             <div className="flex items-center">
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#FDF0F0] dark:bg-rose-950/50 text-metric-negative text-xs font-semibold">
                 <span className="material-symbols-outlined text-[14px]">trending_down</span>
-                -1.8%
+                {kpi?.avgOrderValue?.change || "-1.8%"}
               </span>
               <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">vs bulan lalu</span>
             </div>
@@ -231,7 +250,7 @@ export default function Overview() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-bold text-primary dark:text-white font-['Manrope',sans-serif]">Tren Penjualan 12 Bulan Terakhir</h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-surface-container dark:bg-[#1E293B] text-xs text-on-surface-variant dark:text-[#94A3B8] font-medium">Jan 2024 - Des 2024</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-surface-container dark:bg-[#1E293B] text-xs text-on-surface-variant dark:text-[#94A3B8] font-medium">{data?.chart?.period || "Jan 2025 - Des 2025"}</span>
             </div>
             <p className="text-sm text-on-surface-variant dark:text-[#94A3B8] mt-0.5">Performa pendapatan bulanan riil dibandingkan indikator target strategis retail.</p>
           </div>
@@ -269,16 +288,16 @@ export default function Overview() {
 
               {/* Y-Axis Labels */}
               <text fill="#75777c" fontFamily="Hanken Grotesk" fontSize="11" textAnchor="end" x="50" y="34">
-                $220k
+                $260k
               </text>
               <text fill="#75777c" fontFamily="Hanken Grotesk" fontSize="11" textAnchor="end" x="50" y="89">
-                $180k
+                $215k
               </text>
               <text fill="#75777c" fontFamily="Hanken Grotesk" fontSize="11" textAnchor="end" x="50" y="144">
-                $140k
+                $170k
               </text>
               <text fill="#75777c" fontFamily="Hanken Grotesk" fontSize="11" textAnchor="end" x="50" y="199">
-                $100k
+                $125k
               </text>
               <text fill="#75777c" fontFamily="Hanken Grotesk" fontSize="11" textAnchor="end" x="50" y="254">
                 $80k
@@ -286,7 +305,7 @@ export default function Overview() {
 
               {/* Target Baseline Curve (Muted Dashed Line) */}
               <path
-                d="M 80 200 C 180 190, 250 185, 340 170 C 430 155, 520 150, 610 135 C 700 120, 800 100, 960 70"
+                d={svgPaths?.target || "M 80 200 C 180 190, 250 185, 340 170 C 430 155, 520 150, 610 135 C 700 120, 800 100, 960 70"}
                 fill="none"
                 stroke="#c5c6cc"
                 strokeDasharray="5 5"
@@ -296,46 +315,13 @@ export default function Overview() {
               />
 
               {/* Actual Sales Area Fill */}
-              <path
-                d="M 80 210 
-                   C 120 205, 130 198, 160 195 
-                   C 200 190, 210 182, 240 180 
-                   C 280 178, 290 168, 320 165 
-                   C 360 162, 370 153, 400 150 
-                   C 440 147, 450 143, 480 140 
-                   C 520 137, 530 132, 560 130 
-                   C 600 128, 610 122, 640 120 
-                   C 680 118, 690 140, 720 135 
-                   C 760 130, 770 115, 800 110 
-                   C 840 105, 850 45, 880 42 
-                   C 910 40, 930 48, 960 50 
-                   L 960 250 L 80 250 Z"
-                fill="url(#salesAreaGradient)"
-              />
+              <path d={svgPaths?.area || ""} fill="url(#salesAreaGradient)" />
 
               {/* Actual Sales Smooth Curve */}
-              <path
-                d="M 80 210 
-                   C 120 205, 130 198, 160 195 
-                   C 200 190, 210 182, 240 180 
-                   C 280 178, 290 168, 320 165 
-                   C 360 162, 370 153, 400 150 
-                   C 440 147, 450 143, 480 140 
-                   C 520 137, 530 132, 560 130 
-                   C 600 128, 610 122, 640 120 
-                   C 680 118, 690 140, 720 135 
-                   C 760 130, 770 115, 800 110 
-                   C 840 105, 850 45, 880 42 
-                   C 910 40, 930 48, 960 50"
-                fill="none"
-                stroke="#35618e"
-                strokeLinecap="round"
-                strokeWidth="3.5"
-                className="dark:stroke-[#38BDF8]"
-              />
+              <path d={svgPaths?.line || ""} fill="none" stroke="#35618e" strokeLinecap="round" strokeWidth="3.5" className="dark:stroke-[#38BDF8]" />
 
               {/* Data Circles for each Month */}
-              {months.map((m, idx) => {
+              {chartMonths.map((m, idx) => {
                 if (m.isPeak) {
                   return (
                     <g key={idx} onMouseEnter={() => setHoveredMonth(m)} onMouseLeave={() => setHoveredMonth(null)} className="cursor-pointer">
@@ -362,7 +348,7 @@ export default function Overview() {
               })}
 
               {/* Month X Labels */}
-              {months.map((m, idx) => (
+              {chartMonths.map((m, idx) => (
                 <text
                   key={idx}
                   fill={m.isPeak ? "#0a1622" : "#44474c"}
@@ -380,13 +366,13 @@ export default function Overview() {
             </svg>
 
             {/* Floating Interactive Callout Box for Peak Month (Nov Promo Spike) */}
-            <div className="absolute right-[90px] top-[14px] bg-primary text-white rounded-lg px-3.5 py-2 shadow-lg pointer-events-none transform -translate-x-1/2 flex flex-col gap-0.5 z-20 border border-slate-700">
+            <div className="absolute right-[15px] top-[14px] bg-primary text-white rounded-lg px-3.5 py-2 shadow-lg pointer-events-none transform -translate-x-1/2 flex flex-col gap-0.5 z-20 border border-slate-700">
               <div className="flex items-center gap-1.5 text-xs text-secondary-fixed font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-metric-positive"></span>
-                <span>November Promo Spike</span>
+                <span>{peakCallout?.title || "November Promo Spike"}</span>
               </div>
-              <div className="text-base leading-tight font-bold font-['Manrope',sans-serif]">$212,450</div>
-              <div className="text-[11px] text-primary-fixed-dim">+28.5% melampaui target</div>
+              <div className="text-base leading-tight font-bold font-['Manrope',sans-serif]">{peakCallout?.val || "$212,450"}</div>
+              <div className="text-[11px] text-primary-fixed-dim">{peakCallout?.diff || "+28.5% melampaui target"}</div>
             </div>
 
             {/* Hover Tooltip if hovering another month */}
@@ -395,7 +381,7 @@ export default function Overview() {
                 className="absolute bg-slate-900 text-white rounded-lg px-3 py-1.5 shadow-md text-xs pointer-events-none transform -translate-x-1/2 -translate-y-full z-30 flex flex-col gap-0.5"
                 style={{ left: `${hoveredMonth.cx / 10}%`, top: `${(hoveredMonth.cy / 300) * 100 - 6}%` }}
               >
-                <span className="font-semibold">{hoveredMonth.name} 2024</span>
+                <span className="font-semibold">{hoveredMonth.name} {hoveredMonth.year || 2025}</span>
                 <span>Aktual: {hoveredMonth.val}</span>
                 <span className="text-slate-400">Target: {hoveredMonth.target}</span>
               </div>
@@ -407,10 +393,10 @@ export default function Overview() {
         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 text-on-surface-variant dark:text-[#94A3B8] text-xs border-t border-[#E3E7ED] dark:border-[#1E293B]">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-[15px] text-metric-positive">check_circle</span>9 dari 12 bulan melampaui target kuartalan
+              <span className="material-symbols-outlined text-[15px] text-metric-positive">check_circle</span>{(chartSummary?.exceedingMonths || 9)} dari {(chartSummary?.totalMonths || 12)} bulan melampaui target kuartalan
             </span>
             <span className="hidden sm:inline">•</span>
-            <span className="hidden sm:inline">Rata-rata pendapatan bulanan: $153,541</span>
+            <span className="hidden sm:inline">Rata-rata pendapatan bulanan: {chartSummary?.avgMonthlySales || "$153,541"}</span>
           </div>
 
           <Link href="/forecast" className="inline-flex items-center gap-1 text-secondary dark:text-[#38BDF8] font-medium hover:underline">
