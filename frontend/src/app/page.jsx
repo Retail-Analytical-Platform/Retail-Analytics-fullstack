@@ -153,7 +153,7 @@ export default function Overview() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-primary dark:text-white font-['Manrope',sans-serif]">Ringkasan Metrik Kunci</h2>
-          <span className="text-xs text-on-surface-variant dark:text-[#94A3B8]">Basis komparasi: Bulan sebelumnya (MoM)</span>
+          <span className="text-xs text-on-surface-variant dark:text-[#94A3B8]">Basis komparasi: Tahun sebelumnya (YoY)</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -172,9 +172,9 @@ export default function Overview() {
             <div className="flex items-center">
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#EBF5E9] dark:bg-emerald-950/50 text-metric-positive text-xs font-semibold">
                 <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                {kpi?.totalSales?.change || "+12.4%"}
+                {kpi?.totalSales?.change || "+15.1%"}
               </span>
-              <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">vs bulan lalu</span>
+              <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">{kpi?.totalSales?.period || "vs tahun lalu"}</span>
             </div>
           </div>
 
@@ -193,9 +193,9 @@ export default function Overview() {
             <div className="flex items-center">
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#EBF5E9] dark:bg-emerald-950/50 text-metric-positive text-xs font-semibold">
                 <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                {kpi?.totalOrders?.change || "+8.1%"}
+                {kpi?.totalOrders?.change || "+12.9%"}
               </span>
-              <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">vs bulan lalu</span>
+              <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">{kpi?.totalOrders?.period || "vs tahun lalu"}</span>
             </div>
           </div>
 
@@ -214,9 +214,9 @@ export default function Overview() {
             <div className="flex items-center">
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#EBF5E9] dark:bg-emerald-950/50 text-metric-positive text-xs font-semibold">
                 <span className="material-symbols-outlined text-[14px]">trending_up</span>
-                {kpi?.totalCustomers?.change || "+5.6%"}
+                {kpi?.totalCustomers?.change || "+8.7%"}
               </span>
-              <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">vs bulan lalu</span>
+              <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">{kpi?.totalCustomers?.period || "vs tahun lalu"}</span>
             </div>
           </div>
 
@@ -233,11 +233,17 @@ export default function Overview() {
               <div className="text-[11px] text-on-surface-variant dark:text-[#94A3B8]">{kpi?.avgOrderValue?.subtext || "Setara Rp 74.000 / order"}</div>
             </div>
             <div className="flex items-center">
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-[#FDF0F0] dark:bg-rose-950/50 text-metric-negative text-xs font-semibold">
-                <span className="material-symbols-outlined text-[14px]">trending_down</span>
-                {kpi?.avgOrderValue?.change || "-1.8%"}
+              <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                kpi?.avgOrderValue?.isPositive !== false
+                  ? "bg-[#EBF5E9] dark:bg-emerald-950/50 text-metric-positive"
+                  : "bg-[#FDF0F0] dark:bg-rose-950/50 text-metric-negative"
+              }`}>
+                <span className="material-symbols-outlined text-[14px]">
+                  {kpi?.avgOrderValue?.isPositive !== false ? "trending_up" : "trending_down"}
+                </span>
+                {kpi?.avgOrderValue?.change || "+3.6%"}
               </span>
-              <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">vs bulan lalu</span>
+              <span className="text-[11px] text-on-surface-variant dark:text-[#94A3B8] ml-2">{kpi?.avgOrderValue?.period || "vs tahun lalu"}</span>
             </div>
           </div>
         </div>
